@@ -41,14 +41,21 @@ export const useTaskStore = create((set, get) => ({
     set(state => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, isCompleted: !currentStatus } : t) }));
     await supabase.from('tasks').update({ isCompleted: !currentStatus }).eq('id', id);
   },
-  deleteTask: async (id) => {
-    if (!window.confirm("Move this task to the Trash?")) return;
-    const task = get().tasks.find(t => t.id === id);
-    if (task) {
-      const trashItem = { id: uuidv4(), type: 'task', payload: task, deletedAt: new Date().toISOString() };
-      set(state => ({ tasks: state.tasks.filter(t => t.id !== id), trash: [...state.trash, trashItem] }));
-      await supabase.from('trash').insert(trashItem);
+ deleteTask: async (id) => {
+    const taskToDelete = get().tasks.find((t) => t.id === id);
+    if (taskToDelete) {
+      // 1. Copy the task into the Supabase trash table
+      await supabase.from('trash').insert({
+        id: taskToDelete.id,
+        type: 'task',
+        payload: taskToDelete
+      });
+      
+      // 2. Delete it from the active tasks table
       await supabase.from('tasks').delete().eq('id', id);
+      
+      // 3. Remove it from your local screen
+      set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
     }
   },
   

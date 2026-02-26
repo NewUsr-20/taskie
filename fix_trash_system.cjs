@@ -1,18 +1,21 @@
-import { useState, useEffect } from 'react';
+﻿const fs = require("fs");
+const path = require("path");
+
+// 1. REBUILD TRASH VIEW TO FETCH DIRECTLY FROM THE DATABASE
+const trashPath = path.join(process.cwd(), "src/features/trash/TrashView.tsx");
+const trashCode = `import { useState, useEffect } from 'react';
 import { supabase } from '../../db/supabase';
 import { useTaskStore } from '../tasks/taskStore';
 import { Trash2, RotateCcw, XCircle, Loader2 } from 'lucide-react';
 
 export default function TrashView() {
-  const [trashItems, setTrashItems] = useState<any[]>([]);
+  const [trashItems, setTrashItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // We only use the store to refresh the main app when we restore an item
-  const { fetchAll } = useTaskStore(); 
+  const { fetchAll } = useTaskStore(); // Used to resync the main app when restoring an item
 
   const fetchTrash = async () => {
     setLoading(true);
-    // Directly query the Supabase trash table
+    // Direct Database Query: Bypasses any local state bugs
     const { data } = await supabase.from('trash').select('*').order('deletedAt', { ascending: false });
     setTrashItems(data || []);
     setLoading(false);
@@ -22,20 +25,17 @@ export default function TrashView() {
     fetchTrash();
   }, []);
 
-  const restoreItem = async (item: any) => {
-    // 1. Insert back into the active table (tasks, notes, or lists)
-    const tableName = item.type + 's'; 
-    await supabase.from(tableName).insert(item.payload);
-    
-    // 2. Remove from trash
+  const restoreItem = async (item) => {
+    // 1. Put it back in the correct active table (tasks, notes, or lists)
+    await supabase.from(item.type + 's').insert(item.payload);
+    // 2. Remove it from the trash table
     await supabase.from('trash').delete().eq('id', item.id);
-    
-    // 3. Refresh UI
+    // 3. Refresh the UI
     await fetchTrash();
     fetchAll(); 
   };
 
-  const permanentlyDelete = async (id: string) => {
+  const permanentlyDelete = async (id) => {
     await supabase.from('trash').delete().eq('id', id);
     await fetchTrash();
   };
@@ -88,4 +88,16 @@ export default function TrashView() {
       )}
     </div>
   );
+}`;
+fs.writeFileSync(trashPath, trashCode);
+
+// 2. CLEAN THE STORE TO PREVENT FURTHER BLEEDING
+const storePath = path.join(process.cwd(), "src/features/tasks/taskStore.ts");
+if (fs.existsSync(storePath)) {
+    let code = fs.readFileSync(storePath, "utf8");
+    // Find any typo where trash is accidentally assigned to the tasks array and neutralize it
+    code = code.replace(/trash:\s*tasks(?!\s*\|\|)/g, "trash: []");
+    fs.writeFileSync(storePath, code);
 }
+
+console.log("✅ Trash System perfectly isolated and directly connected to Supabase!");

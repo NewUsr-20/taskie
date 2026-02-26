@@ -11,6 +11,7 @@ import { useTaskStore } from './features/tasks/taskStore';
 import { supabase } from './db/supabase';
 import Auth from './features/auth/Auth';
 import ProfileView from './features/profile/ProfileView';
+import TrashView from './features/trash/TrashView'; 
 
 export default function App() {
   const [activeView, setActiveView] = useState('list');
@@ -99,15 +100,18 @@ export default function App() {
         />
         
         <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+          {/* THE ROUTING FIX IS HERE */}
           {activeView === 'profile' ? <ProfileView /> : 
            activeView === 'calendar' ? <CalendarView /> : 
+           activeView === 'trash' ? <TrashView /> : 
            activeView === 'matrix' ? <EisenhowerMatrix activeTaskId={activeTaskId} onSelectTask={setActiveTaskId} /> :
            (activeView === 'list' && activeList?.type === 'note') ? <NotesView listId={activeList.id} listName={activeList.name} activeNoteId={activeNoteId} setActiveNoteId={setActiveNoteId} /> :
            <TaskList activeView={activeView} activeListId={activeListId} activeTagName={activeTagName} activeFilterId={activeFilterId} activeTaskId={activeTaskId} onSelectTask={setActiveTaskId} setActiveView={setActiveView} />
           }
         </main>
         
-        {activeTaskId && activeList?.type !== 'note' && activeView !== 'calendar' && activeView !== 'matrix' && (
+        {/* Prevent the edit panel from accidentally rendering over the trash bin */}
+        {activeTaskId && activeList?.type !== 'note' && activeView !== 'calendar' && activeView !== 'matrix' && activeView !== 'trash' && (
           <TaskDetails taskId={activeTaskId} onClose={() => setActiveTaskId(null)} />
         )}
 
