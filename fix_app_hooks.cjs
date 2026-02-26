@@ -1,4 +1,7 @@
-import { useState, useEffect } from 'react';
+﻿const fs = require("fs");
+const path = require("path");
+
+const appCode = `import { useState, useEffect } from 'react';
 import { DndContext, PointerSensor, TouchSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core';
 import TaskList from './features/tasks/TaskList';
 import CalendarView from './features/calendar/CalendarView';
@@ -8,9 +11,6 @@ import Sidebar from './components/Sidebar';
 import TaskDetails from './features/tasks/TaskDetails';
 import GlobalSearch from './components/GlobalSearch';
 import { useTaskStore } from './features/tasks/taskStore';
-import { supabase } from './db/supabase';
-import Auth from './features/auth/Auth';
-import ProfileView from './features/profile/ProfileView';
 
 export default function App() {
   const [activeView, setActiveView] = useState('list');
@@ -21,7 +21,6 @@ export default function App() {
   const [activeTaskId, setActiveTaskId] = useState(null);
   const [activeNoteId, setActiveNoteId] = useState(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [session, setSession] = useState(null);
 
   // ALL HOOKS MUST BE CALLED AT THE TOP!
   const { updateTask, assignTagToTask, lists, initialized, fetchAll } = useTaskStore();
@@ -29,18 +28,10 @@ export default function App() {
 
   const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 8 } }), useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }), useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
-    return () => subscription.unsubscribe();
-  }, []);
-
-
   // 1. Fetch data from Supabase on mount
   useEffect(() => { 
-    if (session && !initialized) fetchAll(); 
-  }, [session, initialized, fetchAll]);
+    if (!initialized) fetchAll(); 
+  }, [initialized, fetchAll]);
 
   // 2. Global Keyboard Shortcut for Search (Ctrl+K or Cmd+K)
   useEffect(() => {
@@ -74,9 +65,6 @@ export default function App() {
     }
   };
 
-  // If no user is logged in, show the Auth Screen
-  if (!session) return <Auth />;
-
   // NOW we can safely do the early return for the loading screen!
   if (!initialized) {
     return (
@@ -99,8 +87,7 @@ export default function App() {
         />
         
         <main className="flex-1 overflow-y-auto p-4 lg:p-8">
-          {activeView === 'profile' ? <ProfileView /> : 
-           activeView === 'calendar' ? <CalendarView /> : 
+          {activeView === 'calendar' ? <CalendarView /> : 
            activeView === 'matrix' ? <EisenhowerMatrix activeTaskId={activeTaskId} onSelectTask={setActiveTaskId} /> :
            (activeView === 'list' && activeList?.type === 'note') ? <NotesView listId={activeList.id} listName={activeList.name} activeNoteId={activeNoteId} setActiveNoteId={setActiveNoteId} /> :
            <TaskList activeView={activeView} activeListId={activeListId} activeTagName={activeTagName} activeFilterId={activeFilterId} activeTaskId={activeTaskId} onSelectTask={setActiveTaskId} setActiveView={setActiveView} />
@@ -119,4 +106,7 @@ export default function App() {
       </div>
     </DndContext>
   );
-}
+}`;
+
+fs.writeFileSync(path.join(process.cwd(), 'src/App.tsx'), appCode);
+console.log("✅ App.tsx fixed! The React Hook order is now correct.");

@@ -1,4 +1,7 @@
-import { useState, useMemo } from 'react';
+﻿const fs = require("fs");
+const path = require("path");
+
+const taskListCode = `import { useState, useMemo } from 'react';
 import { CheckCircle2, Circle, Trash2, Calendar as CalendarIcon, Flag, Hash, Sparkles, GripVertical, ArrowDownUp, Filter, Save } from 'lucide-react';
 import * as chrono from 'chrono-node';
 import { useDraggable } from '@dnd-kit/core';
@@ -16,12 +19,12 @@ function DraggableTask({ task, activeTaskId, onSelectTask, toggleTask, deleteTas
   };
 
   return (
-    <div ref={setNodeRef} style={style} onClick={() => onSelectTask(task.id)} className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${activeTaskId === task.id ? 'border-blue-200 bg-blue-50/50 shadow-sm' : 'border-transparent hover:border-gray-100 hover:bg-gray-50'} ${task.isCompleted ? 'opacity-50' : ''}`}>
+    <div ref={setNodeRef} style={style} onClick={() => onSelectTask(task.id)} className={\`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer \${activeTaskId === task.id ? 'border-blue-200 bg-blue-50/50 shadow-sm' : 'border-transparent hover:border-gray-100 hover:bg-gray-50'} \${task.isCompleted ? 'opacity-50' : ''}\`}>
       <div className="flex items-center gap-3 w-full">
         <div {...listeners} {...attributes} className="cursor-grab hover:bg-gray-200 p-1 rounded text-gray-400"><GripVertical className="w-4 h-4" /></div>
         <button onClick={(e) => { e.stopPropagation(); toggleTask(task.id, task.isCompleted); }}>{task.isCompleted ? <CheckCircle2 className="w-5 h-5 text-blue-500" /> : <Circle className="w-5 h-5 text-gray-400" />}</button>
         <div className="flex flex-col flex-1 overflow-hidden">
-          <span className={`text-gray-800 font-medium truncate ${task.isCompleted ? 'line-through text-gray-500' : ''}`}>{task.title}</span>
+          <span className={\`text-gray-800 font-medium truncate \${task.isCompleted ? 'line-through text-gray-500' : ''}\`}>{task.title}</span>
           <div className="flex flex-wrap items-center gap-3 mt-1 text-xs">
             {task.dueDate && renderDate(task.dueDate) && <span className="text-blue-500 flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{renderDate(task.dueDate)}</span>}
             {task.priority > 0 && <span className="text-orange-500 font-bold flex items-center gap-1"><Flag className="w-3 h-3 fill-current" />P{task.priority}</span>}
@@ -84,7 +87,7 @@ export default function TaskList({ activeView, activeListId, activeTagName, acti
     setNewTaskTitle(text);
     const parsed = chrono.parse(text);
     setDetectedDate(parsed.length > 0 ? { date: parsed[0].start.date(), text: parsed[0].text } : null);
-    const matches = [...text.matchAll(/#(\w+)/g)].map(m => m[1]);
+    const matches = [...text.matchAll(/#(\\w+)/g)].map(m => m[1]);
     setDetectedTags(matches);
   };
 
@@ -130,7 +133,7 @@ export default function TaskList({ activeView, activeListId, activeTagName, acti
           {activeView === 'create-filter' && <Filter className="w-6 h-6 text-teal-500" />}
           {getTitle()}
         </h2>
-        <button onClick={() => setSortByPriority(!sortByPriority)} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${sortByPriority ? 'bg-blue-100 text-blue-700' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
+        <button onClick={() => setSortByPriority(!sortByPriority)} className={\`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors \${sortByPriority ? 'bg-blue-100 text-blue-700' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}\`}>
           <ArrowDownUp className="w-4 h-4" />{sortByPriority ? 'Sorted by Priority' : 'Sort by Priority'}
         </button>
       </div>
@@ -178,3 +181,7 @@ export default function TaskList({ activeView, activeListId, activeTagName, acti
     </div>
   );
 }
+`;
+
+fs.writeFileSync(path.join(process.cwd(), 'src/features/tasks/TaskList.tsx'), taskListCode);
+console.log("✅ TaskList successfully rewired to the cloud!");

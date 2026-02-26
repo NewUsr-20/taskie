@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { X, Calendar as CalendarIcon, Flag, AlignLeft, Hash, Plus, CheckSquare, CheckCircle2, Circle, Trash2, FileText } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../../db/database';
 import { useTaskStore } from './taskStore';
 
 interface TaskDetailsProps {
@@ -11,9 +9,8 @@ interface TaskDetailsProps {
 }
 
 export default function TaskDetails({ taskId, onClose }: TaskDetailsProps) {
-  const task = useLiveQuery(() => db.tasks.get(taskId), [taskId]);
-  const allNotes = useLiveQuery(() => db.notes.toArray(), []) || [];
-  const { updateTask, addTag } = useTaskStore();
+  const { tasks, notes: allNotes, updateTask, addTag } = useTaskStore();
+  const task = tasks.find(t => t.id === taskId);
   
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');

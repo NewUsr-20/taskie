@@ -1,8 +1,6 @@
-import { useLiveQuery } from 'dexie-react-hooks';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { CheckCircle2, Circle, GripVertical, AlertTriangle, CalendarClock, Users, Trash } from 'lucide-react';
-import { db } from '../../db/database';
 import { useTaskStore } from '../tasks/taskStore';
 
 function DraggableMatrixTask({ task, activeTaskId, onSelectTask, toggleTask }) {
@@ -43,8 +41,8 @@ function Quadrant({ priorityLevel, title, description, icon, colorClass, tasks, 
 
 export default function EisenhowerMatrix({ activeTaskId, onSelectTask }) {
   // Only fetch active (uncompleted) tasks for the matrix to keep it actionable
-  const allTasks = useLiveQuery(() => db.tasks.filter(t => !t.isCompleted).toArray(), []) || [];
-  const { toggleTask } = useTaskStore();
+  const { tasks, toggleTask } = useTaskStore();
+  const allTasks = tasks.filter(t => !t.isCompleted);
 
   const p3Tasks = allTasks.filter(t => t.priority === 3);
   const p2Tasks = allTasks.filter(t => t.priority === 2);

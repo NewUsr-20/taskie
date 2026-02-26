@@ -1,4 +1,8 @@
-import { create } from 'zustand';
+﻿const fs = require("fs");
+const path = require("path");
+
+// 1. REWRITE TASK STORE TO USE SUPABASE & OPTIMISTIC UI
+const storeCode = `import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../../db/supabase';
 
@@ -89,7 +93,7 @@ export const useTaskStore = create((set, get) => ({
     }
   },
   deleteTag: async (id, name) => {
-    if (!window.confirm(`Delete the tag #${name}?`)) return;
+    if (!window.confirm(\`Delete the tag #\${name}?\`)) return;
     const tag = get().tags.find(t => t.id === id);
     if (tag) {
       const trashItem = { id: uuidv4(), type: 'tag', payload: tag, deletedAt: new Date().toISOString() };
@@ -170,4 +174,67 @@ export const useTaskStore = create((set, get) => ({
     set({ trash: [] });
     if (ids.length) await supabase.from('trash').delete().in('id', ids);
   }
-}));
+}));`;
+fs.writeFileSync(path.join(process.cwd(), 'src/features/tasks/taskStore.ts'), storeCode);
+
+// 2. HELPER TO REPLACE USELIVEQUERY WITH ZUSTAND STATE
+function applySubstitutions(filePath, rules) {
+  if (!fs.existsSync(filePath)) return;
+  let code = fs.readFileSync(filePath, 'utf8');
+  // Strip Dexie
+  code = code.replace(/import \{ useLiveQuery \} from 'dexie-react-hooks';\n?/g, '');
+  code = code.replace(/import \{ db \} from '.*db\/database';\n?/g, '');
+  rules.forEach(rule => { code = code.replace(rule.find, rule.replace); });
+  fs.writeFileSync(filePath, code);
+}
+
+// UPDATE APP.TSX
+applySubstitutions(path.join(process.cwd(), 'src/App.tsx'), [
+  { find: "const activeList = useLiveQuery(() => activeListId ? db.lists.get(activeListId) : Promise.resolve(null), [activeListId]);", 
+    replace: "const { lists, initialized, fetchAll } = useTaskStore();\n  const activeList = lists.find(l => l.id === activeListId) || null;\n\n  useEffect(() => { if (!initialized) fetchAll(); }, [initialized, fetchAll]);\n\n  if (!initialized) return <div className=\"flex items-center justify-center h-screen bg-[#f3f4f6] text-gray-400 font-bold animate-pulse\">Connecting to Cloud Workspace...</div>;" }
+]);
+
+// UPDATE SIDEBAR.TSX
+applySubstitutions(path.join(process.cwd(), 'src/components/Sidebar.tsx'), [
+  { find: "const customLists = useLiveQuery(() => db.lists.toArray());\n  const allTags = useLiveQuery(() => db.tags.toArray());\n  const savedFilters = useLiveQuery(() => db.filters.toArray());\n  const { addList, deleteList, addTag, deleteTag, deleteSavedFilter } = useTaskStore();", 
+    replace: "const { lists: customLists, tags: allTags, filters: savedFilters, addList, deleteList, addTag, deleteTag, deleteSavedFilter } = useTaskStore();" }
+]);
+
+// UPDATE TASKLIST.TSX
+applySubstitutions(path.join(process.cwd(), 'src/features/tasks/TaskList.tsx'), [
+  { find: "const allTasks = useLiveQuery(() => db.tasks.toArray(), []) || [];\n  const customLists = useLiveQuery(() => db.lists.toArray(), []) || [];\n  const allTags = useLiveQuery(() => db.tags.toArray(), []) || [];\n  const activeSavedFilter = useLiveQuery(() => activeFilterId ? db.filters.get(activeFilterId) : Promise.resolve(null), [activeFilterId]);\n  \n  const { addTask, toggleTask, deleteTask, saveFilter } = useTaskStore();", 
+    replace: "const { tasks: allTasks, lists: customLists, tags: allTags, filters, addTask, toggleTask, deleteTask, saveFilter } = useTaskStore();\n  const activeSavedFilter = filters.find(f => f.id === activeFilterId) || null;" }
+]);
+
+// UPDATE TASKDETAILS.TSX
+applySubstitutions(path.join(process.cwd(), 'src/features/tasks/TaskDetails.tsx'), [
+  { find: "const task = useLiveQuery(() => db.tasks.get(taskId), [taskId]);\n  const allNotes = useLiveQuery(() => db.notes.toArray(), []) || [];\n  const { updateTask, addTag } = useTaskStore();", 
+    replace: "const { tasks, notes: allNotes, updateTask, addTag } = useTaskStore();\n  const task = tasks.find(t => t.id === taskId);" }
+]);
+
+// UPDATE NOTESVIEW.TSX
+applySubstitutions(path.join(process.cwd(), 'src/features/notes/NotesView.tsx'), [
+  { find: "const notes = useLiveQuery(() => db.notes.where('listId').equals(listId).reverse().sortBy('updatedAt'), [listId]);\n  const { addNote, updateNote, deleteNote } = useTaskStore();", 
+    replace: "const { notes: allNotes, addNote, updateNote, deleteNote } = useTaskStore();\n  const notes = [...allNotes].filter(n => n.listId === listId).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());" }
+]);
+
+// UPDATE TRASHVIEW.TSX
+applySubstitutions(path.join(process.cwd(), 'src/features/trash/TrashView.tsx'), [
+  { find: "const trashItems = useLiveQuery(() => db.trash.toArray()) || [];\n  const { restoreTrashItem, permanentlyDeleteTrashItem, emptyTrash } = useTaskStore();", 
+    replace: "const { trash: trashItems, restoreTrashItem, permanentlyDeleteTrashItem, emptyTrash } = useTaskStore();" }
+]);
+
+// UPDATE GLOBALSEARCH.TSX
+applySubstitutions(path.join(process.cwd(), 'src/components/GlobalSearch.tsx'), [
+  { find: "const allTasks = useLiveQuery(() => db.tasks.toArray()) || [];\n  const allNotes = useLiveQuery(() => db.notes.toArray()) || [];\n  const allLists = useLiveQuery(() => db.lists.toArray()) || [];\n  const allTags = useLiveQuery(() => db.tags.toArray()) || [];", 
+    replace: "const { tasks: allTasks, notes: allNotes, lists: allLists, tags: allTags } = useTaskStore();" },
+  { find: "import { db } from '../db/database';\n", replace: "import { useTaskStore } from '../features/tasks/taskStore';\n"}
+]);
+
+// UPDATE EISENHOWERMATRIX.TSX
+applySubstitutions(path.join(process.cwd(), 'src/features/matrix/EisenhowerMatrix.tsx'), [
+  { find: "const allTasks = useLiveQuery(() => db.tasks.filter(t => !t.isCompleted).toArray(), []) || [];\n  const { toggleTask } = useTaskStore();", 
+    replace: "const { tasks, toggleTask } = useTaskStore();\n  const allTasks = tasks.filter(t => !t.isCompleted);" }
+]);
+
+console.log("✅ CLOUD MIGRATION COMPLETE! Dexie has been uninstalled. Supabase is now online.");

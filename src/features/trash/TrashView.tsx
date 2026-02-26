@@ -1,11 +1,8 @@
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db/database';
 import { useTaskStore } from '../tasks/taskStore';
 import { Trash2, RotateCcw, XCircle, ListTodo, Hash, CheckSquare, AlertCircle, FileText } from 'lucide-react';
 
 export default function TrashView() {
-  const trashItems = useLiveQuery(() => db.trash.toArray()) || [];
-  const { restoreTrashItem, permanentlyDeleteTrashItem, emptyTrash } = useTaskStore();
+  const { trash: trashItems, restoreTrashItem, permanentlyDeleteTrashItem, emptyTrash } = useTaskStore();
 
   const sortedItems = [...trashItems].sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime());
 

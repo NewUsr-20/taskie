@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db/database';
 import { useTaskStore } from '../tasks/taskStore';
 import { Plus, Trash2, FileText, Clock } from 'lucide-react';
 
 export default function NotesView({ listId, listName, activeNoteId, setActiveNoteId }) {
-  const notes = useLiveQuery(() => db.notes.where('listId').equals(listId).reverse().sortBy('updatedAt'), [listId]);
-  const { addNote, updateNote, deleteNote } = useTaskStore();
+  const { notes: allNotes, addNote, updateNote, deleteNote } = useTaskStore();
+  const notes = [...allNotes].filter(n => n.listId === listId).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   // Lifted to App level for search navigation
   const [newNoteTitle, setNewNoteTitle] = useState('');
 

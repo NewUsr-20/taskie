@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Inbox, Hash, ListTodo, Trash2, Calendar, Sun, Sunrise, CalendarRange, Plus, Filter, SlidersHorizontal, LayoutGrid, FileText, FolderPlus, Search } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { Inbox, Hash, ListTodo, Trash2, Calendar, Sun, Sunrise, CalendarRange, Plus, Filter, SlidersHorizontal, LayoutGrid, FileText, FolderPlus, Search, LogOut, User } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
-import { db } from '../db/database';
 import { useTaskStore } from '../features/tasks/taskStore';
+import { supabase } from '../db/supabase';
 
 function DroppableSidebarItem({ id, type, name, activeId, onClick, children, onDelete }) {
   const { isOver, setNodeRef } = useDroppable({ id, data: { type, name } });
@@ -16,10 +15,7 @@ function DroppableSidebarItem({ id, type, name, activeId, onClick, children, onD
 }
 
 export default function Sidebar({ activeView, setActiveView, activeListId, setActiveListId, activeTagName, setActiveTagName, activeFilterId, setActiveFilterId, onOpenSearch }) {
-  const customLists = useLiveQuery(() => db.lists.toArray());
-  const allTags = useLiveQuery(() => db.tags.toArray());
-  const savedFilters = useLiveQuery(() => db.filters.toArray());
-  const { addList, deleteList, addTag, deleteTag, deleteSavedFilter } = useTaskStore();
+  const { lists: customLists, tags: allTags, filters: savedFilters, addList, deleteList, addTag, deleteTag, deleteSavedFilter } = useTaskStore();
 
   const [isAddingList, setIsAddingList] = useState(false); 
   const [newListName, setNewListName] = useState('');
@@ -43,7 +39,7 @@ export default function Sidebar({ activeView, setActiveView, activeListId, setAc
     <aside className="w-64 bg-[#f8f9fb] border-r border-gray-200 flex flex-col h-full overflow-hidden transition-all shadow-inner">
       <div className="h-16 flex items-center px-6 border-b border-gray-200 bg-white">
         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md text-sm">T</div>
-        <span className="ml-3 font-bold text-gray-800 tracking-tight text-lg">TickTick</span>
+        <span className="ml-3 font-bold text-gray-800 tracking-tight text-lg">TAK's</span>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         
@@ -121,8 +117,26 @@ export default function Sidebar({ activeView, setActiveView, activeListId, setAc
              <span className="text-sm">Trash</span>
            </button>
         </div>
+      
+        {/* NEW: LOG OUT */}
+        
+        {/* NEW: PROFILE VIEW */}
+        <div className="pt-2 border-t border-gray-200 mt-auto">
+           <button onClick={() => setActiveView('profile')} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${activeView === 'profile' ? 'bg-blue-100 text-blue-700 shadow-sm font-semibold' : 'text-gray-600 hover:bg-gray-100'}`}>
+             <User className={`w-5 h-5 ${activeView === 'profile' ? 'text-blue-600' : 'text-gray-400'}`} />
+             <span className="text-sm">Profile Settings</span>
+           </button>
+        </div>
+
+        <div className="pt-1 mt-1">
+           <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-all">
+             <LogOut className="w-5 h-5 text-gray-400" />
+             <span className="text-sm font-medium">Sign Out</span>
+           </button>
+        </div>
       </div>
     </aside>
+
 
   );
 }

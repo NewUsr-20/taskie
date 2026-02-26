@@ -1,4 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+﻿const fs = require("fs");
+const path = require("path");
+
+const searchCode = `import { useState, useMemo, useEffect } from 'react';
 import { Search, X, CheckSquare, FileText, Folder, Hash } from 'lucide-react';
 import { useTaskStore } from '../features/tasks/taskStore';
 
@@ -88,4 +91,7 @@ export default function GlobalSearch({ isOpen, onClose, onNavigate }) {
       </div>
     </div>
   );
-}
+}`;
+
+fs.writeFileSync(path.join(process.cwd(), 'src/components/GlobalSearch.tsx'), searchCode);
+console.log("✅ GlobalSearch properly connected to Supabase!");
